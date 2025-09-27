@@ -105,31 +105,30 @@ function createBot() {
 
   // Track real players
   bot.on("playerJoined", (player) => {
-    if (player.username !== USERNAME) {
-      realPlayersOnline++;
+    if (!bot || player.username === USERNAME) return;
+    realPlayersOnline++;
+    if (bot && bot._client && !bot._client.destroyed) {
       console.log(`[${timestamp()}] 👀 Real player joined: ${player.username}, enabling vanish`);
       safeChat("/vanish on");
     }
   });
 
   bot.on("playerLeft", (player) => {
-    if (player.username !== USERNAME) {
-      realPlayersOnline = Math.max(0, realPlayersOnline - 1);
-      console.log(`[${timestamp()}] 👋 Player left: ${player.username}`);
-      if (realPlayersOnline === 0) {
-        console.log(`[${timestamp()}] No real players online, disabling vanish`);
-        safeChat("/vanish off");
-      }
+    if (!bot || player.username === USERNAME) return;
+    realPlayersOnline = Math.max(0, realPlayersOnline - 1);
+    console.log(`[${timestamp()}] 👋 Player left: ${player.username}`);
+    if (realPlayersOnline === 0) {
+      console.log(`[${timestamp()}] No real players online, disabling vanish`);
+      safeChat("/vanish off");
     }
   });
 
   bot.on("end", () => {
-    console.log(`[${timestamp()}] ❌ Bot disconnected`);
     stopAFK();
     stopAFKChat();
     retryCount++;
-    const delay = Math.min(120000, retryCount * 20000);
-    console.log(`[${timestamp()}] 🔄 Reconnecting in ${delay / 1000}s...`);
+    const delay = Math.min(300000, 20000 * retryCount); // max 5 min
+    console.log(`[${timestamp()}] ❌ Bot disconnected, reconnecting in ${delay/1000}s...`);
     setTimeout(createBot, delay);
   });
 
@@ -140,9 +139,6 @@ function createBot() {
       stopAFK();
       stopAFKChat();
       if (bot && bot._client && !bot._client.destroyed) bot.end();
-      retryCount++;
-      const delay = Math.min(120000, retryCount * 20000);
-      setTimeout(createBot, delay);
     }
   });
 
