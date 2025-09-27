@@ -1,14 +1,14 @@
 name: PhoenixSMP KeepAlive Bot
 
 on:
-  workflow_dispatch: # manual run
+  workflow_dispatch: # manual trigger
   schedule:
-    - cron: "*/15 * * * *" # runs every 15 minutes
+    - cron: "*/15 * * * *" # every 15 minutes
 
 jobs:
   keepalive:
     runs-on: ubuntu-latest
-    timeout-minutes: 720 # 12h per run
+    timeout-minutes: 720 # max 12 hours per run
 
     steps:
       - name: Checkout repository
@@ -20,7 +20,8 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install mineflayer
 
       - name: Run PhoenixSMP Bot
         env:
