@@ -9,6 +9,7 @@ let bot
 let afkInterval
 let chatInterval
 let retryCount = 0
+let realPlayersOnline = 0
 
 function timestamp() {
   return new Date().toISOString().split('T')[1].split('.')[0]
@@ -41,15 +42,24 @@ function createBot() {
     if (message === '!state') bot.chat('✅ I am online and AFK.')
   })
 
+  // Track real players
   bot.on('playerJoined', player => {
     if (player.username !== USERNAME) {
+      realPlayersOnline++
       console.log(`[${timestamp()}] 👀 Real player joined: ${player.username}, enabling vanish`)
       bot.chat('/vanish on')
     }
   })
 
   bot.on('playerLeft', player => {
-    console.log(`[${timestamp()}] 👋 Player left: ${player.username}`)
+    if (player.username !== USERNAME) {
+      realPlayersOnline = Math.max(0, realPlayersOnline - 1)
+      console.log(`[${timestamp()}] 👋 Player left: ${player.username}`)
+      if (realPlayersOnline === 0) {
+        console.log(`[${timestamp()}] No real players online, disabling vanish`)
+        bot.chat('/vanish off')
+      }
+    }
   })
 
   bot.on('end', () => {
@@ -57,13 +67,22 @@ function createBot() {
     stopAFK()
     stopAFKChat()
     retryCount++
-    const delay = Math.min(60000, retryCount * 20000)
+    const delay = Math.min(120000, retryCount * 20000)
     console.log(`[${timestamp()}] 🔄 Reconnecting in ${delay/1000}s...`)
     setTimeout(createBot, delay)
   })
 
   bot.on('error', err => {
     console.log(`[${timestamp()}] ⚠️ Error: ${err.message}`)
+    if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
+      console.log(`[${timestamp()}] 🔄 Network error, reconnecting...`)
+      stopAFK()
+      stopAFKChat()
+      if (bot) bot.end()
+      retryCount++
+      const delay = Math.min(120000, retryCount * 20000)
+      setTimeout(createBot, delay)
+    }
   })
 
   bot.on('kicked', reason => {
