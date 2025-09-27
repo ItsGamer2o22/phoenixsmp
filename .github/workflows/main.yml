@@ -1,14 +1,14 @@
 name: PhoenixSMP KeepAlive Bot
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # manual run
   schedule:
-    - cron: "*/15 * * * *" # every 15 minutes
+    - cron: "*/15 * * * *" # runs every 15 minutes
 
 jobs:
   keepalive:
     runs-on: ubuntu-latest
-    timeout-minutes: 720 # max 12h per run
+    timeout-minutes: 720 # 12h per run
 
     steps:
       - name: Checkout repository
@@ -20,14 +20,9 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        run: npm install mineflayer
+        run: npm install
 
-      - name: Load .env
-        run: |
-          echo "Loading environment variables..."
-          cat .env
-
-      - name: Run Bot
+      - name: Run PhoenixSMP Bot
         env:
           MC_SERVERS: ${{ secrets.MC_SERVERS || 'play.phoenixsmp.qzz.io:20722' }}
           MC_USERNAME: ${{ secrets.MC_USERNAME || 'PhoenixSMPBot' }}
