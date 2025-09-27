@@ -11,7 +11,7 @@ let chatInterval
 let retryCount = 0
 
 function timestamp() {
-  return new Date().toISOString().split('T')[1].split('.')[0] // HH:MM:SS
+  return new Date().toISOString().split('T')[1].split('.')[0]
 }
 
 function createBot() {
@@ -34,7 +34,6 @@ function createBot() {
 
   bot.on('chat', (username, message) => {
     if (username === USERNAME) return
-
     if (/hi bot/i.test(message)) bot.chat(`Hello ${username}! 👋`)
     if (/afk\??/i.test(message)) bot.chat(`Yes, I'm keeping the server alive ⛏️`)
     if (message === '!vanish on') bot.chat('/vanish on')
@@ -103,7 +102,7 @@ function startAFKChat() {
     if (!bot || !bot.entity) return
     const msg = messages[Math.floor(Math.random() * messages.length)]
     bot.chat(msg)
-  }, 10 * 60 * 1000) // every 10 minutes
+  }, 10 * 60 * 1000)
 }
 
 function stopAFKChat() {
