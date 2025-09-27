@@ -1,0 +1,44 @@
+name: PhoenixSMP KeepAlive Bot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *" # every 15 minutes
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 720 # max 12h per run
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prevent overlapping runs
+        run: |
+          LOCK_FILE=/tmp/phoenix_bot.lock
+          if [ -f "$LOCK_FILE" ]; then
+            echo "Another bot run is in progress. Exiting..."
+            exit 0
+          fi
+          touch "$LOCK_FILE"
+          trap "rm -f $LOCK_FILE" EXIT
+
+      - name: Run Bot
+        env:
+          MC_SERVERS: ${{ secrets.MC_SERVERS || 'play.phoenixsmp.qzz.io:20722' }}
+          MC_USERNAME: ${{ secrets.MC_USERNAME || 'PhoenixSMPBot' }}
+          MC_AUTH: ${{ secrets.MC_AUTH || 'offline' }}
+          MC_EMAIL: ${{ secrets.MC_EMAIL || '' }}
+          MC_PASSWORD: ${{ secrets.MC_PASSWORD || '' }}
+        run: |
+          echo "🚀 Starting PhoenixSMP KeepAlive Bot..."
+          node bot.js
