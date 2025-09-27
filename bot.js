@@ -3,7 +3,9 @@ const mineflayer = require("mineflayer");
 const SERVER = process.env.MC_SERVERS?.split(",")[0] || "play.phoenixsmp.qzz.io:20722";
 const [host, port] = SERVER.split(":");
 const USERNAME = process.env.MC_USERNAME || "PhoenixSMPBot";
-const AUTH = process.env.MC_AUTH || "offline";
+
+// FORCE offline mode for compatibility with SkinRestorer
+const AUTH = "offline";
 
 let bot;
 let afkInterval;
@@ -15,34 +17,26 @@ function timestamp() {
   return new Date().toISOString().split("T")[1].split(".")[0];
 }
 
-// Safe wrapper for setControlState
 function safeSetControl(state, value) {
   if (!bot || !bot.entity || !bot._client || bot._client.destroyed) return;
   try {
     bot.setControlState(state, value);
-  } catch (err) {
-    console.log(`[${timestamp()}] ⚠️ safeSetControl error: ${err.message}`);
-  }
+  } catch {}
 }
 
-// Safe wrapper for bot.chat
 function safeChat(msg) {
   if (!bot || !bot._client || bot._client.destroyed) return;
   try {
     bot.chat(msg);
-  } catch (err) {
-    console.log(`[${timestamp()}] ⚠️ chat error: ${err.message}`);
-  }
+  } catch {}
 }
 
-// Stop AFK safely
 function stopAFK() {
   clearInterval(afkInterval);
   if (!bot) return;
   ["forward", "back", "left", "right", "jump", "sneak"].forEach(dir => safeSetControl(dir, false));
 }
 
-// AFK movement
 function startAFK() {
   afkInterval = setInterval(() => {
     if (!bot || !bot.entity || !bot._client || bot._client.destroyed) return;
@@ -55,7 +49,6 @@ function startAFK() {
   }, 5000);
 }
 
-// AFK chat
 function startAFKChat() {
   const messages = [
     "Keeping the server alive!",
@@ -75,7 +68,6 @@ function stopAFKChat() {
   clearInterval(chatInterval);
 }
 
-// Create the bot
 function createBot() {
   console.log(`[${timestamp()}] 🤖 Connecting to ${host}:${port || 25565} as ${USERNAME} (${AUTH})...`);
 
@@ -103,31 +95,25 @@ function createBot() {
     if (message === "!state") safeChat("✅ I am online and AFK.");
   });
 
-  // Track real players
   bot.on("playerJoined", (player) => {
     if (!bot || player.username === USERNAME) return;
     realPlayersOnline++;
-    if (bot && bot._client && !bot._client.destroyed) {
-      console.log(`[${timestamp()}] 👀 Real player joined: ${player.username}, enabling vanish`);
-      safeChat("/vanish on");
-    }
+    console.log(`[${timestamp()}] 👀 Real player joined: ${player.username}, enabling vanish`);
+    safeChat("/vanish on");
   });
 
   bot.on("playerLeft", (player) => {
     if (!bot || player.username === USERNAME) return;
     realPlayersOnline = Math.max(0, realPlayersOnline - 1);
     console.log(`[${timestamp()}] 👋 Player left: ${player.username}`);
-    if (realPlayersOnline === 0) {
-      console.log(`[${timestamp()}] No real players online, disabling vanish`);
-      safeChat("/vanish off");
-    }
+    if (realPlayersOnline === 0) safeChat("/vanish off");
   });
 
   bot.on("end", () => {
     stopAFK();
     stopAFKChat();
     retryCount++;
-    const delay = Math.min(300000, 20000 * retryCount); // max 5 min
+    const delay = Math.min(300000, retryCount * 20000); // max 5 min
     console.log(`[${timestamp()}] ❌ Bot disconnected, reconnecting in ${delay/1000}s...`);
     setTimeout(createBot, delay);
   });
@@ -143,10 +129,16 @@ function createBot() {
   });
 
   bot.on("kicked", (reason) => {
-    const msg = reason?.toString ? reason.toString() : JSON.stringify(reason);
+    let msg;
+    try { msg = typeof reason === "string" ? reason : JSON.stringify(reason); } 
+    catch { msg = "[unknown reason]"; }
     console.log(`[${timestamp()}] ⚠️ Kicked: ${msg}`);
+    stopAFK();
+    stopAFKChat();
+    const delay = 20000;
+    console.log(`[${timestamp()}] ❌ Bot disconnected, reconnecting in ${delay/1000}s...`);
+    setTimeout(createBot, delay);
   });
 }
 
-// Start the bot
 createBot();
