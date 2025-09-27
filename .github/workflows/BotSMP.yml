@@ -1,1 +1,39 @@
+name: PhoenixSMP KeepAlive Bot
 
+on:
+  workflow_dispatch:
+  schedule:
+    # Keepalive check every 15 minutes
+    - cron: "*/15 * * * *"
+    # Force new run every 14 hours
+    - cron: "0 */14 * * *"
+
+concurrency:
+  group: phoenixsmp-keepalive
+  cancel-in-progress: false # wait for previous run to finish
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 720 # max 12h per run
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm install mineflayer
+
+      - name: Run Bot
+        env:
+          MC_SERVERS: ${{ secrets.MC_SERVERS || 'play.phoenixsmp.qzz.io:20722' }}
+          MC_USERNAME: ${{ secrets.MC_USERNAME || 'PhoenixSMPBot' }}
+          MC_AUTH: "offline" # offline mode prevents SkinRestorer errors
+        run: |
+          echo "🚀 Starting PhoenixSMP KeepAlive Bot..."
+          node bot.js
