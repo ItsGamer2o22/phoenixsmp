@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 720 # max 12h per run
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Setup Node.js
@@ -20,17 +20,12 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        run: npm install mineflayer minecraft-protocol
+        run: npm install mineflayer
 
-      - name: Prevent overlapping runs
+      - name: Load .env
         run: |
-          LOCK_FILE=/tmp/phoenix_bot.lock
-          if [ -f "$LOCK_FILE" ]; then
-            echo "Another bot run is in progress. Exiting..."
-            exit 0
-          fi
-          touch "$LOCK_FILE"
-          trap "rm -f $LOCK_FILE" EXIT
+          echo "Loading environment variables..."
+          cat .env
 
       - name: Run Bot
         env:
