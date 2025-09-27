@@ -37,9 +37,9 @@ function createBot() {
     if (username === USERNAME) return
     if (/hi bot/i.test(message)) bot.chat(`Hello ${username}! 👋`)
     if (/afk\??/i.test(message)) bot.chat(`Yes, I'm keeping the server alive ⛏️`)
-    if (message === '!vanish on') bot.chat('/vanish on')
-    if (message === '!vanish off') bot.chat('/vanish off')
-    if (message === '!state') bot.chat('✅ I am online and AFK.')
+    if (message === '!vanish on') safeChat('/vanish on')
+    if (message === '!vanish off') safeChat('/vanish off')
+    if (message === '!state') safeChat('✅ I am online and AFK.')
   })
 
   // Track real players
@@ -47,7 +47,7 @@ function createBot() {
     if (player.username !== USERNAME) {
       realPlayersOnline++
       console.log(`[${timestamp()}] 👀 Real player joined: ${player.username}, enabling vanish`)
-      bot.chat('/vanish on')
+      safeChat('/vanish on')
     }
   })
 
@@ -57,18 +57,18 @@ function createBot() {
       console.log(`[${timestamp()}] 👋 Player left: ${player.username}`)
       if (realPlayersOnline === 0) {
         console.log(`[${timestamp()}] No real players online, disabling vanish`)
-        bot.chat('/vanish off')
+        safeChat('/vanish off')
       }
     }
   })
 
   bot.on('end', () => {
-    console.log(`[${timestamp()}] ❌ Bot disconnected from ${host}:${port || 25565}`)
+    console.log(`[${timestamp()}] ❌ Bot disconnected`)
     stopAFK()
     stopAFKChat()
     retryCount++
     const delay = Math.min(120000, retryCount * 20000)
-    console.log(`[${timestamp()}] 🔄 Reconnecting in ${delay/1000}s...`)
+    console.log(`[${timestamp()}] 🔄 Reconnecting in ${delay / 1000}s...`)
     setTimeout(createBot, delay)
   })
 
@@ -78,7 +78,7 @@ function createBot() {
       console.log(`[${timestamp()}] 🔄 Network error, reconnecting...`)
       stopAFK()
       stopAFKChat()
-      if (bot) bot.end()
+      if (bot && bot._client && !bot._client.destroyed) bot.end()
       retryCount++
       const delay = Math.min(120000, retryCount * 20000)
       setTimeout(createBot, delay)
@@ -90,10 +90,10 @@ function createBot() {
   })
 }
 
-// Randomized AFK movement
+// AFK movement
 function startAFK() {
   afkInterval = setInterval(() => {
-    if (!bot || !bot.entity) return
+    if (!bot || !bot.entity || !bot._client || bot._client.destroyed) return
     bot.setControlState('forward', Math.random() < 0.7)
     bot.setControlState('left', Math.random() < 0.5)
     bot.setControlState('right', Math.random() < 0.5)
@@ -105,10 +105,17 @@ function startAFK() {
 
 function stopAFK() {
   clearInterval(afkInterval)
-  if (bot) bot.clearControlStates()
+  if (bot && bot._client && !bot._client.destroyed) {
+    bot.setControlState('forward', false)
+    bot.setControlState('back', false)
+    bot.setControlState('left', false)
+    bot.setControlState('right', false)
+    bot.setControlState('jump', false)
+    bot.setControlState('sneak', false)
+  }
 }
 
-// Random chat while AFK
+// AFK random chat
 function startAFKChat() {
   const messages = [
     "Keeping the server alive!",
@@ -118,9 +125,9 @@ function startAFKChat() {
     "Ping me if you need me!"
   ]
   chatInterval = setInterval(() => {
-    if (!bot || !bot.entity) return
+    if (!bot || !bot.entity || !bot._client || bot._client.destroyed) return
     const msg = messages[Math.floor(Math.random() * messages.length)]
-    bot.chat(msg)
+    safeChat(msg)
   }, 10 * 60 * 1000)
 }
 
@@ -128,5 +135,11 @@ function stopAFKChat() {
   clearInterval(chatInterval)
 }
 
-// Start the bot
+// Safe bot chat wrapper
+function safeChat(msg) {
+  if (bot && bot._client && !bot._client.destroyed) {
+    bot.chat(msg)
+  }
+}
+
 createBot()
