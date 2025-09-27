@@ -90,24 +90,32 @@ function createBot() {
 function startAFK() {
   afkInterval = setInterval(() => {
     if (!bot || !bot.entity || !bot._client || bot._client.destroyed) return
-    bot.setControlState('forward', Math.random() < 0.7)
-    bot.setControlState('left', Math.random() < 0.5)
-    bot.setControlState('right', Math.random() < 0.5)
-    bot.setControlState('jump', Math.random() < 0.3)
-    bot.setControlState('sneak', Math.random() < 0.2)
-    bot.look(Math.random() * 360, Math.random() * 180 - 90)
+    try {
+      bot.setControlState('forward', Math.random() < 0.7)
+      bot.setControlState('left', Math.random() < 0.5)
+      bot.setControlState('right', Math.random() < 0.5)
+      bot.setControlState('jump', Math.random() < 0.3)
+      bot.setControlState('sneak', Math.random() < 0.2)
+      bot.look(Math.random() * 360, Math.random() * 180 - 90)
+    } catch (err) {
+      console.log(`[${timestamp()}] ⚠️ AFK movement error: ${err.message}`)
+    }
   }, 5000)
 }
 
 function stopAFK() {
   clearInterval(afkInterval)
   if (bot && bot._client && !bot._client.destroyed) {
-    bot.setControlState('forward', false)
-    bot.setControlState('back', false)
-    bot.setControlState('left', false)
-    bot.setControlState('right', false)
-    bot.setControlState('jump', false)
-    bot.setControlState('sneak', false)
+    try {
+      bot.setControlState('forward', false)
+      bot.setControlState('back', false)
+      bot.setControlState('left', false)
+      bot.setControlState('right', false)
+      bot.setControlState('jump', false)
+      bot.setControlState('sneak', false)
+    } catch (err) {
+      console.log(`[${timestamp()}] ⚠️ stopAFK error: ${err.message}`)
+    }
   }
 }
 
@@ -133,7 +141,11 @@ function stopAFKChat() {
 // Safe wrapper for bot.chat
 function safeChat(msg) {
   if (bot && bot._client && !bot._client.destroyed) {
-    bot.chat(msg)
+    try {
+      bot.chat(msg)
+    } catch (err) {
+      console.log(`[${timestamp()}] ⚠️ chat error: ${err.message}`)
+    }
   }
 }
 
