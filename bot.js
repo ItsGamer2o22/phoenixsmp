@@ -35,14 +35,13 @@ function createBot() {
 
   bot.on('chat', (username, message) => {
     if (username === USERNAME) return
-    if (/hi bot/i.test(message)) bot.chat(`Hello ${username}! 👋`)
-    if (/afk\??/i.test(message)) bot.chat(`Yes, I'm keeping the server alive ⛏️`)
+    if (/hi bot/i.test(message)) safeChat(`Hello ${username}! 👋`)
+    if (/afk\??/i.test(message)) safeChat("Yes, I'm keeping the server alive ⛏️")
     if (message === '!vanish on') safeChat('/vanish on')
     if (message === '!vanish off') safeChat('/vanish off')
     if (message === '!state') safeChat('✅ I am online and AFK.')
   })
 
-  // Track real players
   bot.on('playerJoined', player => {
     if (player.username !== USERNAME) {
       realPlayersOnline++
@@ -55,10 +54,7 @@ function createBot() {
     if (player.username !== USERNAME) {
       realPlayersOnline = Math.max(0, realPlayersOnline - 1)
       console.log(`[${timestamp()}] 👋 Player left: ${player.username}`)
-      if (realPlayersOnline === 0) {
-        console.log(`[${timestamp()}] No real players online, disabling vanish`)
-        safeChat('/vanish off')
-      }
+      if (realPlayersOnline === 0) safeChat('/vanish off')
     }
   })
 
@@ -126,8 +122,7 @@ function startAFKChat() {
   ]
   chatInterval = setInterval(() => {
     if (!bot || !bot.entity || !bot._client || bot._client.destroyed) return
-    const msg = messages[Math.floor(Math.random() * messages.length)]
-    safeChat(msg)
+    safeChat(messages[Math.floor(Math.random() * messages.length)])
   }, 10 * 60 * 1000)
 }
 
@@ -135,7 +130,7 @@ function stopAFKChat() {
   clearInterval(chatInterval)
 }
 
-// Safe bot chat wrapper
+// Safe wrapper for bot.chat
 function safeChat(msg) {
   if (bot && bot._client && !bot._client.destroyed) {
     bot.chat(msg)
